@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+openai
+pydantic
+pydantic-settings
+chromadb>=0.4.24
+pypdf
+langchain
+langchain-community
+langchain-openai
+langchain-text-splitters
+python-docx
+sentence-transformers
