@@ -64,3 +64,4 @@ def Chat(req:ChatRequest):
 @app.get("/")
 def get():
     return {"detail":"Hi How are you"}
+

@@ -11,3 +11,10 @@ langchain-openai
 langchain-text-splitters
 python-docx
 sentence-transformers
+unstructured
+openpyxl
+pandas
+xlrd
+lxml
+msoffcrypto-tool
+

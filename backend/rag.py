@@ -11,25 +11,26 @@ from langchain_core.messages import (
 from langchain_community.document_loaders import (
     PyPDFLoader,
     TextLoader,
+    UnstructuredExcelLoader,
 )
 from pathlib import Path
 import os
 from pydantic import SecretStr
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from config import settings
+from docx import Document as DocxDocument
 
 DOCS_PATH = Path(__file__).parent / "docs"
 CHROMA_DB_PATH = Path(__file__).parent / "chroma_db"
 print(DOCS_PATH)
 
-vectorstore = None
+chroma_txt,chroma_excel = None,None
 
 def load_docx(file_path):
     """
     Custom loader for .docx files using python-docx.
     This is more efficient than using external packages.
     """
-    from docx import Document as DocxDocument
     
     # Open the Word document
     doc = DocxDocument(file_path)
@@ -42,36 +43,49 @@ def load_docx(file_path):
 
 def load_documents_by_type():
     """Load documents based on file type"""
-    documents = []
+    txt_documents = []
+    excel_documents= []
     
     # Loop through docs folder
     for file_path in DOCS_PATH.glob("*"):
         try:
-            if file_path.suffix == ".txt":
+            if file_path.suffix.lower() == ".txt":
                 # Use TextLoader for .txt
                 loader = TextLoader(str(file_path))
                 docs = loader.load()
-                documents.extend(docs)
+                txt_documents.extend(docs)
                 print(f"Loaded {len(docs)} documents from {file_path.name}")
             
-            elif file_path.suffix == ".docx":
+            elif file_path.suffix.lower() == ".docx":
                 # Use custom loader for .docx
                 docs = load_docx(str(file_path))
-                documents.extend(docs)
+                txt_documents.extend(docs)
                 print(f"Loaded {len(docs)} documents from {file_path.name}")
             
-            elif file_path.suffix == ".pdf":
+            elif file_path.suffix.lower() == ".pdf":
                 # Use PyPDFLoader for .pdf
                 loader = PyPDFLoader(str(file_path))
                 docs = loader.load()
-                documents.extend(docs)
+                txt_documents.extend(docs)
                 print(f"Loaded {len(docs)} documents from {file_path.name}")
+
+            elif file_path.suffix.lower() in ['.xls', '.xlsx']:
+                # Use UnstructuredExcelLoader for Excel files
+                loader = UnstructuredExcelLoader(str(file_path))
+                docs = loader.load()
+                excel_documents.extend(docs)
+                print(f"Loaded {len(docs)} documents from {file_path.name}")
+            
+            else:
+                print(f"Skipping unsupported file type: {file_path.name}")
             
         except Exception as e:
             print(f"Error loading {file_path.name}: {e}")
             continue
+    print(len(txt_documents), len(excel_documents))
     
-    return documents
+    return txt_documents, excel_documents
+
 
 def split_into_chunks(documents):
     splitter=RecursiveCharacterTextSplitter(
@@ -84,39 +98,52 @@ def split_into_chunks(documents):
     return chunks
 
 def initialize_chroma():
-    global vectorstore
+    global chroma_excel
+    global chroma_txt
 
     print("Loading documents...")  
-    documents = documents = load_documents_by_type()  
-    print(f"Documents loaded: {len(documents)}") 
+    txt_documents, excel_documents = load_documents_by_type()  
+    print(f"Documents loaded: {len(txt_documents), len(excel_documents)}") 
     
-    if not documents:
+    if not txt_documents and not excel_documents :
         print("no docs found")
         return None
     
     print("Splitting into chunks...")  
-    chunks = split_into_chunks(documents)
+    chunks = split_into_chunks(txt_documents)
     print(f"Chunks created: {len(chunks)}")  
     
     print("Creating embeddings...")  
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    txt_embeddings = HuggingFaceEmbeddings(model_name="all-mpnet-base-v2")
+    excel_embeddings = HuggingFaceEmbeddings(model_name ="all-MiniLM-L6-v2")
+
     
     print("Initializing Chroma...")  
-    vectorstore = Chroma.from_documents(
-        documents=chunks,  # ← Make sure this is `chunks` not `documents`
-        embedding=embeddings,
-        persist_directory=str(CHROMA_DB_PATH)
+    chroma_txt = Chroma.from_documents(
+        documents=chunks,
+        embedding=txt_embeddings,
+        persist_directory=str(CHROMA_DB_PATH/"text")
+    )
+    chroma_excel = Chroma.from_documents(
+        documents=excel_documents,
+        embedding=excel_embeddings,
+        persist_directory=str(CHROMA_DB_PATH/"excel")
     )
     print("vector DB initilized successfully")
-    return vectorstore
+    return chroma_txt, chroma_excel
 
-def search_similar_documents(query:str, k:int= 3):
-    if vectorstore is None:
-        print("no vectorestore noyt initilized")
-        return []
-    
-    results = vectorstore.similarity_search(query,k)
+def search_similar_documents(query: str, k: int = 3):
+    results = []
+
+    if chroma_txt:
+        results += chroma_txt.similarity_search(query, k=3)
+
+    if chroma_excel:
+        results += chroma_excel.similarity_search(query, k=2)
+
     return results
+
+
 def get_context_for_query(query: str, k: int = 3):
     """
     Get formatted context from documents to send with ChatGPT.
@@ -127,8 +154,7 @@ def get_context_for_query(query: str, k: int = 3):
     [Document 1 content]
     
     [Document 2 content]
-    
-    ..."
+"
     """
     results = search_similar_documents(query, k=k)
     
@@ -142,3 +168,6 @@ def get_context_for_query(query: str, k: int = 3):
         context += f"Document {i}:\n{doc.page_content}\n\n"
     
     return context
+
+txt_documents, excel_documents = load_documents_by_type() 
+split_into_chunks(txt_documents)
