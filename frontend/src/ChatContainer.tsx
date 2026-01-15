@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from './hooks/useChat'
+import { DocumentUpload } from './DocumentUpload'
 import './ChatContainer.css'
 
 export function ChatContainer() {
@@ -62,6 +63,10 @@ export function ChatContainer() {
             <span className="icon">✚</span>
             New Chat
           </button>
+          
+          <div style={{ marginTop: '1rem' }}>
+            <DocumentUpload />
+          </div>
         </div>
 
         <div className="conversations-list">

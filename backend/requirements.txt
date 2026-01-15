@@ -17,4 +17,5 @@ pandas
 xlrd
 lxml
 msoffcrypto-tool
+python-multipart
 

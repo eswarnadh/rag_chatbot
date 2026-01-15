@@ -86,6 +86,91 @@ def load_documents_by_type():
     
     return txt_documents, excel_documents
 
+def process_new_document(file_path : str):
+    global chroma_txt , chroma_excel
+
+    file_path_obj = Path(file_path)
+    print(f"Processing new document: {file_path_obj.name}")
+
+    try:
+        if file_path_obj.suffix.lower() == '.txt':
+            loader = TextLoader(str(file_path))
+            docs = loader.load()
+            doc_type = "text"
+            print(f"Loaded {len(docs)} text documents")
+
+        elif file_path_obj.suffix.lower() == '.docx':
+            docs= load_docx(str(file_path))
+            doc_type= "text"
+            print(f"Loaded {len(docs)} text documents")
+
+        elif file_path_obj.suffix.lower() in ['.xlx','.xlsx']:
+            loader = UnstructuredExcelLoader(str(file_path))
+            docs = loader.load()
+            doc_type = "excel"
+            print(f"Loaded {len(docs)} text documents")
+
+        elif file_path_obj.suffix.lower() == '.pdf':
+            loader= PyPDFLoader(str(file_path))
+            docs= loader.load()
+            doc_type= "text"
+            print(f"Loaded {len(docs)} text documents")
+
+        else:
+            raise ValueError(f"Unsupported File Type")
+
+
+    except Exception as e:
+        print(f"Error loading the document: {str(e)}")
+        raise ValueError(f"Error loading the document: {str(e)}")
+    
+
+    if doc_type == "text":
+        chunks = split_into_chunks(docs)
+        print(f"created {len(chunks)} chunks")
+
+        if chroma_txt is None:
+            print("initializing text vector store")
+            embeddings = HuggingFaceEmbeddings(model_name = "all-mpnet-base-v2")
+            chroma_txt = Chroma.from_documents(
+                documents=chunks,
+                embedding=embeddings,
+                persist_directory=str(CHROMA_DB_PATH/"text")
+            )
+        else:
+            print("Adding into existing text vector store")
+            chroma_txt.add_documents(chunks)
+        return {
+            "status" :"success",
+            "chunks": len(chunks),
+            "type": doc_type,
+            "filename":file_path_obj.name
+            }
+
+    else:
+        # Excel documents - no chunking
+        print(f"Processing {len(docs)} excel documents")
+        
+        if chroma_excel is None:
+            print("Initializing excel vector store...")
+            embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+            chroma_excel = Chroma.from_documents(
+                documents=docs,
+                embedding=embeddings,
+                persist_directory=str(CHROMA_DB_PATH/"excel")
+            )
+        else:
+            print("Adding to existing excel vector store...")
+            chroma_excel.add_documents(docs)
+            
+        return {
+            "status": "success",
+            "chunks": len(docs),
+            "type": doc_type,
+            "filename": file_path_obj.name
+        }
+
+        
 
 def split_into_chunks(documents):
     splitter=RecursiveCharacterTextSplitter(
@@ -101,7 +186,7 @@ def initialize_chroma():
     global chroma_excel
     global chroma_txt
 
-    print("Loading documents...")  
+    print("Loading documents...")
     txt_documents, excel_documents = load_documents_by_type()  
     print(f"Documents loaded: {len(txt_documents), len(excel_documents)}") 
     
