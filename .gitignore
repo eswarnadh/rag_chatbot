@@ -1,53 +1,64 @@
-# Byte-compiled / optimized / DLL files
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
 *.egg
-MANIFEST
+*.egg-info/
+dist/
+build/
+*.log
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
+# Virtual Environments
+chatbot/
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
+# OS
+.DS_Store
+Thumbs.db
+
+# Node.js / Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs
+build/
+coverage/
+
+# ChromaDB (uncomment to ignore vector database)
+# chroma_db/
+
+# Test files
+.pytest_cache/
 .coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints
+
+# Temporary files
+tmp/
+temp/
+*.tmp
 .pytest_cache/
 cover/
 
@@ -247,19 +258,15 @@ temp/
 *.sln
 *.sw?
 
-# Chatbot virtual environment
-chatbot/
+# Specific to this project
+backend/.env
+backend/chatbot/
+backend/__pycache__/
 
 # ChromaDB data (uncomment if you want to ignore vector database)
-# chroma_db/
+# backend/chroma_db/
 
-# Build outputs
-dist/
-dist-ssr/
-*.local
-
-# Lock files (optional - uncomment if you want to ignore)
-# package-lock.json
-# yarn.lock
-# Pipfile.lock
-# poetry.lock
+# Frontend build
+frontend/dist/
+frontend/dist-ssr/
+frontend/node_modules/
